@@ -1,350 +1,321 @@
-Practical no 1Decompose time series data to find trend, seasonality, cyclic and irregularity.
-
-import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.tsa.seasonal import STL
-
-# Load dataset
-data = pd.read_csv("AirPassengers.csv", parse_dates=["Month"], index_col="Month")
-
-# Plot original series
-plt.plot(data.index, data["#Passengers"], color="green")
-plt.title("Air Passengers Time Series")
-plt.xlabel("Year")
-plt.ylabel("Passengers")
-plt.show()
-
-# STL Decomposition
-stl = STL(data["#Passengers"], seasonal=13)
-result = stl.fit()
-
-# Plot components
-fig, axes = plt.subplots(3, 1, figsize=(7,4))
-
-axes[0].plot(result.trend, color="red")
-axes[0].set_title("Trend")
-
-axes[1].plot(result.seasonal, color="blue")
-axes[1].set_title("Seasonal")
-
-axes[2].plot(result.resid)
-axes[2].set_title("Residual")
-
-plt.tight_layout()
-plt.show()
-
-practical no 2 Data conversion of non-stationary to stationary
+Practical no 1 Implementation of single layer perceptron
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import adfuller
-from statsmodels.tsa.seasonal import seasonal_decompose
-from scipy.stats import boxcox
-
-# Generate random walk time series
-np.random.seed(42)
-ts = pd.Series(np.cumsum(np.random.normal(size=100)))
-
-def plot_series(series, title):
-    plt.figure(figsize=(8,3))
-    plt.plot(series)
-    plt.title(title)
-    plt.show()
-
-# Original series
-plot_series(ts, "Original Time Series")
-
-# Differencing
-diff = ts.diff().dropna()
-plot_series(diff, "Differenced Series")
-
-# Log transformation
-log_ts = np.log(ts - ts.min() + 1)
-plot_series(log_ts, "Log Transformation")
-
-# Moving average removal
-ma = ts.rolling(5).mean()
-ma_diff = ts - ma
-plot_series(ma_diff, "Moving Average Difference")
-
-# Decomposition
-decomp = seasonal_decompose(ts, model="additive", period=10)
-residual = decomp.resid.dropna()
-
-plt.figure(figsize=(8,4))
-plt.subplot(311); plt.plot(decomp.trend); plt.title("Trend")
-plt.subplot(312); plt.plot(decomp.seasonal); plt.title("Seasonal")
-plt.subplot(313); plt.plot(decomp.resid); plt.title("Residual")
-plt.tight_layout(); plt.show()
-
-# Box-Cox transformation
-boxcox_ts, lam = boxcox(ts - ts.min() + 1)
-plot_series(boxcox_ts, f"Box-Cox Transformation (λ={lam:.2f})")
-
-# ADF Test function
-def adf_test(series, name):
-    result = adfuller(series.dropna())
-    print(f"\nADF Test: {name}")
-    print("ADF Statistic:", result[0])
-    print("p-value:", result[1])
-    print("Stationary" if result[1] <= 0.05 else "Not Stationary")
-
-# Run tests
-adf_test(ts, "Original")
-adf_test(diff, "Differenced")
-adf_test(log_ts, "Log")
-adf_test(ma_diff, "Moving Avg Diff")
-adf_test(residual, "Residual")
-adf_test(pd.Series(boxcox_ts), "Box-Cox")
-
-Practical no 3 Perform a duckey-fuller test to check stationarity of data
-
-import pandas as pd
-from statsmodels.tsa.stattools import adfuller
-
-# Create example time series data
-dates = pd.date_range("2020-01-01", periods=100, freq="D")
-values = [x + 0.1*x for x in range(100)]
-
-df = pd.DataFrame({"date": dates, "value": values})
-print(df.head())
-
-# ADF Test
-adf_result = adfuller(df["value"])
-
-print("\nADF Statistic:", adf_result[0])
-print("p-value:", adf_result[1])
-
-print("\nCritical Values:")
-for key, val in adf_result[4].items():
-    print(f"{key}: {val}")
-
-# Interpretation
-print("\nSeries is Stationary" if adf_result[1] <= 0.05 else "\nSeries is Not Stationary")
-
-Practical no 4Implementation of moving averages models
-
-import pandas as pd
-import matplotlib.pyplot as plt
-
-dates = pd.date_range("2020-01-01", "2020-01-31")
-prices = [43,31,1,10,20,24,26,27,34,35,36,37,31,21,20,19,18,19,20,24,28,29,
-          20,32,34,35,36,30,32,30,23]
-
-df = pd.DataFrame({"Date": dates, "Price": prices})
-
-# Moving averages
-for window in [3,4,5]:
-    df[f"{window}-MA"] = df["Price"].rolling(window).mean()
-
-# Plot
-df.plot(x="Date", y=["Price","3-MA","4-MA","5-MA"])
-plt.show()
-
-Practical no 5 Demonstration of autocorrelation functions and partial autocorrelation functions.
-
-import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-from statsmodels.tsa.stattools import acf, pacf
-
-# Load dataset
-df = pd.read_csv("AirPassengers.csv")
-
-# Plot time series
-plt.figure(figsize=(7,4))
-plt.plot(df['#Passengers'], color='green', label='Passengers')
-plt.title("Air Passengers Dataset")
-plt.xlabel("Time")
-plt.ylabel("Passengers")
-plt.legend()
-plt.show()
-
-# ACF and PACF plots
-plot_acf(df['#Passengers'], lags=40)
-plt.title("ACF")
-plt.show()
-
-plot_pacf(df['#Passengers'], lags=40, method='ywm')
-plt.title("PACF")
-plt.show()
-
-# Numerical values
-acf_values = acf(df['#Passengers'], nlags=40)
-pacf_values = pacf(df['#Passengers'], nlags=40, method='ywm')
-
-print("ACF Values:\n", acf_values)
-print("\nPACF Values:\n", pacf_values)
-
-Practical no 6 Implementation of Autoregressive models.
-
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.tsa.ar_model import AutoReg
-from sklearn.metrics import mean_squared_error
-
-# Generate synthetic time series
-np.random.seed(20)
-series = pd.Series([50 + 0.8*i + np.random.normal(scale=5) for i in range(100)])
-
-# Train-Test split
-train_size = int(len(series)*0.8)
-train, test = series[:train_size], series[train_size:]
-
-# Train AR model
-model = AutoReg(train, lags=5).fit()
-
-# Predictions
-pred = model.predict(start=len(train), end=len(series)-1)
-
-# Evaluation
-mse = mean_squared_error(test, pred)
-print("Mean Squared Error:", round(mse,4))
-
-# Plot
-plt.plot(test, label="Actual")
-plt.plot(pred, "--", label="Predicted")
-plt.title("AutoReg Model Prediction")
-plt.legend()
-plt.show()
-
-Practical no 7Implementation of ARIMA model.
-
-import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import adfuller
-from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
-from statsmodels.tsa.arima.model import ARIMA
-
-# Load dataset
-df = pd.read_csv("AirPassengers.csv")
-series = df["#Passengers"]
-
-# Plot original series
-plt.plot(series)
-plt.title("AirPassengers Time Series")
-plt.show()
-
-# ADF Test
-def adf_test(data):
-    result = adfuller(data.dropna())
-    print("ADF Statistic:", result[0])
-    print("p-value:", result[1])
-
-print("ADF Test for Original Series")
-adf_test(series)
-
-# Differencing
-series_diff = series.diff().dropna()
-
-print("\nADF Test After Differencing")
-adf_test(series_diff)
-
-# ACF & PACF
-plot_acf(series_diff)
-plt.show()
-
-plot_pacf(series_diff, method="ywm")
-plt.show()
-
-# ARIMA Model
-model = ARIMA(series, order=(1,1,1))
-model_fit = model.fit()
-
-print(model_fit.summary())
-
-# Forecast
-forecast = model_fit.forecast(steps=10)
-
-plt.plot(series, label="Original")
-plt.plot(range(len(series), len(series)+10), forecast, color="red", label="Forecast")
-plt.legend()
-plt.title("ARIMA Forecast")
-plt.show()
-
-Practical no 8 SARIMA model
-
-import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.tsa.stattools import adfuller
-from statsmodels.tsa.statespace.sarimax import SARIMAX
-
-# Load dataset
-df = pd.read_csv("AirPassengers.csv")
-series = df["#Passengers"]
-
-# Plot series
-plt.plot(series)
-plt.title("AirPassengers Dataset")
-plt.show()
-
-# ADF Test
-def adf_test(data):
-    result = adfuller(data.dropna())
-    print("ADF Statistic:", result[0])
-    print("p-value:", result[1])
-
-print("ADF Test")
-adf_test(series)
-
-# Fit SARIMAX Model
-model = SARIMAX(series,
-                order=(1,1,1),
-                seasonal_order=(1,1,1,12))
-
-model_fit = model.fit()
-
-print(model_fit.summary())
-
-# Forecast
-forecast = model_fit.forecast(steps=12)
-
-plt.plot(series, label="Original")
-plt.plot(range(len(series), len(series)+12), forecast, color="red", label="Forecast")
-plt.legend()
-plt.title("SARIMAX Forecast")
-plt.show()
-
-Practical 9
-
-import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.tsa.api import SimpleExpSmoothing, Holt, ExponentialSmoothing
-
-# Load dataset
-data = pd.read_csv("AirPassengers.cwsv", parse_dates=["Month"], index_col="Month")
-
-# Plot original data
-plt.plot(data)
-plt.title("Air Passengers Dataset")
-plt.xlabel("Month")
-plt.ylabel("Passengers")
-plt.show()
-
-# Function to train model and plot results
-def plot_forecast(model, title):
-    fit = model.fit()
-    forecast = fit.forecast(40)
-
-    plt.plot(data, label="Original")
-    plt.plot(fit.fittedvalues, label="Fitted")
-    plt.plot(forecast, label="Forecast")
-    plt.title(title)
-    plt.xlabel("Year")
-    plt.ylabel("Passengers")
-    plt.legend()
-    plt.show()
-
-# Single Exponential Smoothing
-plot_forecast(SimpleExpSmoothing(data), "Single Exponential Smoothing")
-
-# Double Exponential Smoothing (Holt)
-plot_forecast(Holt(data), "Double Exponential Smoothing")
-
-# Holt-Winters Method
-plot_forecast(
-    ExponentialSmoothing(data, trend="add", seasonal="add", seasonal_periods=12),
-    "Holt-Winters Exponential Smoothing"
+from sklearn.datasets import load_iris
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+class Perceptron:
+    def __init__(self, learning_rate=0.1, epochs=100):
+        self.learning_rate = learning_rate
+        self.epochs = epochs
+    def fit(self, features, labels):
+        self.weights = np.zeros(features.shape[1])
+        self.bias = 0
+        for _ in range(self.epochs):
+            for x, y in zip(features, labels):
+                prediction = int(np.dot(x, self.weights) + self.bias >= 0)
+                update = self.learning_rate * (y - prediction)
+                self.weights += update * x
+                self.bias += update
+
+    def predict(self, features):
+        return (np.dot(features, self.weights) + self.bias >= 0).astype(int)
+
+# Load dataset (2 classes only)
+iris = load_iris()
+features = iris.data[iris.target != 2]
+labels = iris.target[iris.target != 2]
+
+X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Train model
+model = Perceptron()
+model.fit(X_train, y_train)
+
+accuracy = np.mean(model.predict(X_test) == y_test)
+print("Accuracy:", accuracy)
+
+# Decision boundary using first two features
+train_2d = X_train[:, :2]
+model.fit(train_2d, y_train)
+
+x_grid, y_grid = np.meshgrid(
+    np.linspace(train_2d[:,0].min(), train_2d[:,0].max(), 100),
+    np.linspace(train_2d[:,1].min(), train_2d[:,1].max(), 100)
 )
+
+grid_points = np.c_[x_grid.ravel(), y_grid.ravel()]
+predictions = model.predict(grid_points).reshape(x_grid.shape)
+
+plt.contourf(x_grid, y_grid, predictions, alpha=0.5)
+plt.scatter(train_2d[:,0], train_2d[:,1], c=y_train, cmap="coolwarm")
+plt.title("Perceptron Decision Boundary")
+plt.show()
+
+Practical no 2 Implementation of multi-layer perceptron
+
+!pip install torch
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import matplotlib.pyplot as plt
+
+# Model
+model = nn.Sequential(
+    nn.Linear(3,8), nn.ReLU(),
+    nn.Linear(8,16), nn.ReLU(),
+    nn.Linear(16,2)
+)
+
+# Dummy data
+X = torch.randn(100,3)
+y = torch.randint(0,2,(100,))
+
+loss_fn = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+losses = []
+
+# Training
+for _ in range(200):
+    optimizer.zero_grad()
+    loss = loss_fn(model(X), y)
+    loss.backward()
+    optimizer.step()
+    losses.append(loss.item())
+
+# Loss plot
+plt.plot(losses)
+plt.xlabel("Epochs"); plt.ylabel("Loss")
+plt.show()
+
+# Accuracy
+with torch.no_grad():
+    pred = model(X).argmax(1)
+    print("Accuracy:", (pred==y).float().mean().item())
+
+Practical no 3 Implementation of Bidirectional Associative Memory (BAM)
+
+import numpy as np
+
+class BAM:
+    def __init__(self, x_neurons, y_neurons):
+        self.w = np.zeros((x_neurons, y_neurons))
+    def train(self, patterns):
+        for x, y in patterns:
+            self.w += np.outer(x, y)
+    def recall_x(self, x):
+        return np.sign(x @ self.w)
+    def recall_y(self, y):
+        return np.sign(y @ self.w.T)
+
+
+# Example
+bam = BAM(4, 2)
+
+patterns = [
+    (np.array([1, 1, 1, -1]), np.array([1, 1])),
+    (np.array([-1, -1, 1, 1]), np.array([-1, 1]))
+]
+
+bam.train(patterns)
+
+print("Weights:\n", bam.w)
+
+x = np.array([1, 1, 1, -1])
+print("\nInput X:", x)
+print("Recalled Y:", bam.recall_x(x))
+
+y = np.array([-1, 1])
+print("\nInput Y:", y)
+print("Recalled X:", bam.recall_y(y))
+
+noisy_x = np.array([1, -1, 1, -1])
+print("\nNoisy X:", noisy_x)
+print("Recalled Y:", bam.recall_x(noisy_x))
+
+Practical no 4Implementation of fuzzy logic.
+
+def fuzzy_logic(temp, humid):
+    def tri(x, a, b, c):
+        if x <= a or x >= c: return 0
+        if x == b: return 1
+        if x < b: return (x-a)/(b-a)
+        return (c-x)/(c-b)
+    # Temperature memberships
+    t_low  = 1 if temp <= 25 else (50-temp)/25 if temp < 50 else 0
+    t_med  = tri(temp, 25, 50, 75)
+    t_high = 0 if temp <= 50 else (temp-50)/25 if temp < 75 else 1
+
+    # Humidity memberships
+    h_low  = 1 if humid <= 25 else (50-humid)/25 if humid < 50 else 0
+    h_med  = tri(humid, 25, 50, 75)
+    h_high = 0 if humid <= 50 else (humid-50)/25 if humid < 75 else 1
+
+    # Defuzzification
+    low  = (t_low + h_low) / 2
+    med  = (t_med + h_med) / 2
+    high = (t_high + h_high) / 2
+
+    return [low, med, high]
+
+
+temps  = [23, 45, 56, 78]
+humids = [56, 45, 78, 78]
+
+for t, h in zip(temps, humids):
+    low, med, high = fuzzy_logic(t, h)
+    print(f"For Temperature:{t} and Humidity:{h} \nFan Spped --> Low:{low:.2f}, Med:{med:.2f}, High:{high:.2f}\n")
+
+Practical no 5 Implementation of heb rule learning
+
+import numpy as np
+
+def hebbian_learning(X, y, lr=0.1):
+    w = np.zeros(X.shape[1])
+    print("Initial weights:", w)
+
+    for i, (x, target) in enumerate(zip(X, y), 1):
+        dw = lr * x * target
+        print(f"Delta weight: {dw}\n")
+        w += dw
+        print(f"After sample {i}: {w}")
+
+    return w
+
+
+X = np.array([[1,0],
+              [0,1],
+              [1,1],
+              [0,0]])
+
+y = np.array([0,0,1,0])
+
+w = hebbian_learning(X, y)
+print("\nFinal weights:", w)
+
+Practical no 6 Implementation of self organizing map
+
+import numpy as np
+
+class SOM:
+    def __init__(self, size, dim):
+        self.size = size
+        self.w = np.random.rand(size, size, dim)
+
+    def train(self, data, lr=0.1, radius=2, epochs=100):
+        for _ in range(epochs):
+            for x in data:
+                d = np.linalg.norm(self.w - x, axis=2)
+                bmu = np.unravel_index(np.argmin(d), d.shape)
+
+                for i in range(self.size):
+                    for j in range(self.size):
+                        dist = np.sqrt((i-bmu[0])**2 + (j-bmu[1])**2)
+                        if dist <= radius:
+                            self.w[i,j] += lr * (x - self.w[i,j])
+
+data = np.random.rand(100,3)
+
+som = SOM(5,3)
+som.train(data)
+
+print("Final Weights:\n", som.w)
+
+Practical no 7 Implementation of delta rule learning
+
+import numpy as np
+
+def delta_rule_learning(inputs, targets, learning_rate=0.1, epochs=5):
+    weights = np.zeros(inputs.shape[1])
+    print("Initial Weights:", weights)
+
+    for epoch in range(epochs):
+        print(f"\nEpoch {epoch + 1}")
+        for input_vector, target in zip(inputs, targets):
+
+            output = np.dot(input_vector, weights)
+            error = target - output
+
+            weight_update = learning_rate * error * input_vector
+            weights += weight_update
+
+            print("Input:", input_vector,
+                  "Output:", round(output, 2),
+                  "Error:", round(error, 2),
+                  "Weights:", weights)
+
+    return weights
+
+
+# Dataset
+inputs = np.array([
+    [1, 1],
+    [0, 1],
+    [1, 0],
+    [0, 0]
+])
+
+targets = np.array([1, 0, 0, 0])
+
+# Train model
+final_weights = delta_rule_learning(inputs, targets)
+
+print("\nFinal Weights:", final_weights)
+
+Genetic Algorithm
+
+import random
+
+TARGET = "I love MSCDSAI with RJColleges"
+GENES = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 1234567890 "
+POP_SIZE = 500
+
+def random_string():
+    return [random.choice(GENES) for _ in range(len(TARGET))]
+
+def fitness(chromosome):
+    return sum(c != t for c, t in zip(chromosome, TARGET))
+
+def mate(p1, p2):
+    child = []
+    for g1, g2 in zip(p1, p2):
+        r = random.random()
+        if r < 0.45:
+            child.append(g1)
+        elif r < 0.90:
+            child.append(g2)
+        else:
+            child.append(random.choice(GENES))  # mutation
+    return child
+
+# Initial population
+population = [random_string() for _ in range(POP_SIZE)]
+generation = 1
+
+while True:
+    population = sorted(population, key=fitness)
+
+    if fitness(population[0]) == 0:
+        break
+
+    new_population = population[:POP_SIZE//10]  # best 10%
+
+    while len(new_population) < POP_SIZE:
+        p1 = random.choice(population[:POP_SIZE//2])
+        p2 = random.choice(population[:POP_SIZE//2])
+        new_population.append(mate(p1, p2))
+
+    population = new_population
+
+    print(f"Gen {generation}: {''.join(population[0])}")
+    generation += 1
+
+print("\nTarget Reached:", "".join(population[0]))
+
