@@ -269,7 +269,7 @@ final_weights = delta_rule_learning(inputs, targets)
 
 print("\nFinal Weights:", final_weights)
 
-Genetic Algorithm
+Practical 8 Genetic Algorithm
 
 import random
 
